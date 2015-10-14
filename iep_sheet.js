@@ -1,4 +1,8 @@
-COLUMN_NAME = "REVIEW DATE";
+REVIEW_COLUMN_NAME = "REVIEW DATE";
+PP_COLUMN_NAME = "Point Person";
+LAST_NAME_COLUMN = "Last Name";
+FIRST_NAME_COLUMN = "First Name";
+
 
 // spreadSheet object constructor function
 function spreadSheet(googleSpreadSheet){
@@ -19,7 +23,11 @@ function shit(sheet, sheetName, spreadSheet) {
   this.sheet = sheet;
   this.numCols = sheet.getLastColumn();
   this.numRows = sheet.getLastRow();
+  this.ppColumnNumber;
   this.meetingColumnNumber;
+  this.studentLastNameColumnNumber;
+  this.studentFirstNameColumnNumber;
+  
   
   this.getColumnNumberByColumnTitle = function(title) {
     for (var i = 1; i <= this.numCols; i++) {
@@ -28,14 +36,13 @@ function shit(sheet, sheetName, spreadSheet) {
       // get cells
       var data = x.getValue();
       if (data == title) {
-        this.meetingColumnNumber = i;
         return i;
       }
     }
   }
   
   this.checkUpcomingMeetings = function() {
-    var range, cell;
+    var range, cell, confirmationCell, confirmationRange, ppemail;
     var dateNow = new Date();
     //get whole column of review dates
     for (var i = 2; i <= this.numRows; i++) {
@@ -44,18 +51,28 @@ function shit(sheet, sheetName, spreadSheet) {
       
       //check if time between today and upcoming meeting is less than 2 weeks
       var dateMeeting = new Date(cell);
-      var timeDiff = Math.abs(dateNow.getTime() - dateMeeting.getTime());
+      var timeDiff = dateNow.getTime() - dateMeeting.getTime();
       var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
       if (!(cell instanceof Date)) {
         diffDays = "No date entered for meeting";
       }
       //set value of cell to the right with days countdown
       this.sheet.getRange(i, this.meetingColumnNumber+1, 1, 1).setValue(diffDays);
+      
+      //check value of countdown to see if it's less than 14
+      if (diffDays < 14) {
+        //check value of last column to see if email has not been sent
+        confirmationRange = this.sheet.getRange(i, this.numCols, 1, 1);
+        confirmationCell = confirmationRange.getValue();
+        if (confirmationCell != 'YES') {
+          //send email
+          ppemail = this.sheet.getRange(i, this.ppCol, 1, 1);
+          //make calendar event
+          //update confirmationCell
+          confirmationRange.setValue('YES');
+        }
+      }
     }
-    
-    
-    
-    //check if email has been sent
   }
 }
 
@@ -69,11 +86,19 @@ function instantiateSheets(sheetsArray, spreadSheet) {
     // add sheet to list of sheets in spreadSheet object
     spreadSheet.addSheet(newSheet);
     // get IEP meeting column number
-    var col = newSheet.getColumnNumberByColumnTitle(COLUMN_NAME);
+    debugger;
+    newSheet.meetingColumnNumber = newSheet.getColumnNumberByColumnTitle(REVIEW_COLUMN_NAME);
     // only check upcoming meetings on sheets with meetings entered
-    if (typeof col == 'number') {
+    if (typeof newSheet.meetingColumnNumber == 'number') {
       newSheet.checkUpcomingMeetings();
     }
+    // get pointperson column number
+    newSheet.ppColumnNumber = newSheet.getColumnNumberByColumnTitle(PP_COLUMN_NAME);
+    //get student last name
+    newSheet.studentLastNameColumnNumber = newSheet.getColumnNumberByColumnTitle(LAST_NAME_COLUMN);
+    //get student first name
+    newSheet.studentFirstNameColumnNumber = newSheet.getColumnNumberByColumnTitle(FIRST_NAME_COLUMN);
+    
   }
 }
 
